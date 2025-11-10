@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useAccount, useConnect, useDisconnect } from "wagmi"
-import { injected } from "wagmi/connectors"
+import { appkit } from "./config/appkit"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
@@ -16,13 +15,13 @@ import BaseSepoliaGuide from "./components/base-sepolia-guide"
 const CONTRACT_ADDRESS = "0x3B1af0A5922e1228e57Ec2325f3e2D3E3C2935e9"
 
 export default function ClientPage() {
-  const { address, isConnected } = useAccount()
-  const { connect, isPending: isConnecting, error: connectError } = useConnect()
-  const { disconnect } = useDisconnect()
   const [contractAddress, setContractAddress] = useState(CONTRACT_ADDRESS)
+  const { address, isConnected } = appkit.wallet.useAccount()
+  const { connect, isConnecting, error: connectError } = appkit.wallet.useConnect()
+  const { disconnect } = appkit.wallet.useDisconnect()
 
   const handleConnect = () => {
-    connect({ connector: injected() })
+    connect()
   }
 
   if (!isConnected) {

@@ -1,7 +1,6 @@
 "use client"
 
-import { appkit } from "@/app/config/appkit"
-import { formatUnits } from "@reown/appkit"
+import { useAppKit, utils } from "@reown/appkit"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -37,33 +36,15 @@ interface WalletBalanceProps {
 }
 
 export default function WalletBalance({ contractAddress, walletAddress }: WalletBalanceProps) {
+  const { erc20 } = useAppKit()
   const {
-    data: balance,
-    isLoading: balanceLoading,
-    refetch: refetchBalance,
-  } = appkit.contract.read({
-    address: contractAddress,
-    abi: ERC20_ABI,
-    functionName: "balanceOf",
-    args: walletAddress ? [walletAddress] : undefined,
-    enabled: !!walletAddress,
-  })
+    balance,
+    decimals,
+    symbol,
+    isLoading
+  } = erc20.useToken(contractAddress, walletAddress)
 
-  const { data: decimals, isLoading: decimalsLoading } = appkit.contract.read({
-    address: contractAddress,
-    abi: ERC20_ABI,
-    functionName: "decimals",
-  })
-
-  const { data: symbol, isLoading: symbolLoading } = appkit.contract.read({
-    address: contractAddress,
-    abi: ERC20_ABI,
-    functionName: "symbol",
-  })
-
-  const isLoading = balanceLoading || decimalsLoading || symbolLoading
-
-  const formattedBalance = balance && decimals ? formatUnits(balance, decimals) : "0"
+  const formattedBalance = balance ? utils.formatUnits(balance, decimals || 18) : "0"
 
   return (
     <Card className="backdrop-blur-md bg-white/10 border-white/20 shadow-xl">
@@ -73,7 +54,7 @@ export default function WalletBalance({ contractAddress, walletAddress }: Wallet
           Your Balance
         </CardTitle>
         <Button
-          onClick={() => refetchBalance()}
+          onClick={() => erc20.refresh(contractAddress)}
           variant="outline"
           size="sm"
           className="backdrop-blur-sm bg-white/10 border-white/20 text-white hover:bg-white/20"

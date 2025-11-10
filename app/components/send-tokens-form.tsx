@@ -3,8 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { appkit } from "@/app/config/appkit"
-import { parseUnits } from "@reown/appkit"
+import { useAppKit, utils } from "@reown/appkit"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,22 +51,17 @@ export default function SendTokensForm({ contractAddress }: SendTokensFormProps)
   const [amount, setAmount] = useState("")
   const [bulkAddresses, setBulkAddresses] = useState("")
   const [inputMode, setInputMode] = useState<"individual" | "bulk">("individual")
-
-  const { data: decimals } = appkit.contract.read({
-    address: contractAddress,
-    abi: ERC20_ABI,
-    functionName: "decimals",
-  })
-
-  const { data: symbol } = appkit.contract.read({
-    address: contractAddress,
-    abi: ERC20_ABI,
-    functionName: "symbol",
-  })
-
-  const { write: writeContract, data: hash, isLoading: isPending, error } = appkit.contract.write()
-
-  const { isLoading: isConfirming, isSuccess } = appkit.transaction.wait({ hash })
+  
+  const { erc20 } = useAppKit()
+  const {
+    decimals,
+    symbol
+  } = erc20.useToken(contractAddress)
+  
+  const [isPending, setIsPending] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  const [hash, setHash] = useState<string | null>(null)
 
   const addAddressField = () => {
     if (addresses.length < 11) {
@@ -110,28 +104,29 @@ export default function SendTokensForm({ contractAddress }: SendTokensFormProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
+    setIsPending(true)
+    setIsSuccess(false)
+    setHash(null)
 
     const validAddresses = getValidAddresses()
 
-    if (validAddresses.length === 0) {
-      return
-    }
-
-    if (!amount || !decimals) {
+    if (validAddresses.length === 0 || !amount || !decimals) {
+      setIsPending(false)
       return
     }
 
     try {
-      const amountInWei = parseUnits(amount, decimals)
-
-      writeContract({
-        address: contractAddress,
-        abi: ERC20_ABI,
-        functionName: "sendToClassmates",
-        args: [validAddresses, amountInWei],
-      })
+      const amountInWei = utils.parseUnits(amount, decimals)
+      const tx = await erc20.sendTokens(contractAddress, validAddresses, amountInWei)
+      setHash(tx.hash)
+      await tx.wait()
+      setIsSuccess(true)
     } catch (err) {
       console.error("Transaction failed:", err)
+      setError(err as Error)
+    } finally {
+      setIsPending(false)
     }
   }
 
@@ -315,13 +310,13 @@ export default function SendTokensForm({ contractAddress }: SendTokensFormProps)
           <div className="flex gap-2">
             <Button
               type="submit"
-              disabled={isPending || isConfirming || validAddresses.length === 0 || !amount}
+              disabled={isPending || validAddresses.length === 0 || !amount}
               className="flex-1 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold py-3 rounded-xl transition-all duration-300"
             >
-              {isPending || isConfirming ? (
+              {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isPending ? "Confirming..." : "Processing..."}
+                  <span>Processing...</span>
                 </>
               ) : (
                 <>
