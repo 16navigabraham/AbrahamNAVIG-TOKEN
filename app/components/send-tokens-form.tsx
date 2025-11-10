@@ -3,8 +3,8 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi"
-import { parseUnits } from "viem"
+import { appkit } from "@/app/config/appkit"
+import { parseUnits } from "@reown/appkit"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -53,23 +53,21 @@ export default function SendTokensForm({ contractAddress }: SendTokensFormProps)
   const [bulkAddresses, setBulkAddresses] = useState("")
   const [inputMode, setInputMode] = useState<"individual" | "bulk">("individual")
 
-  const { data: decimals } = useReadContract({
-    address: contractAddress as `0x${string}`,
+  const { data: decimals } = appkit.contract.read({
+    address: contractAddress,
     abi: ERC20_ABI,
     functionName: "decimals",
   })
 
-  const { data: symbol } = useReadContract({
-    address: contractAddress as `0x${string}`,
+  const { data: symbol } = appkit.contract.read({
+    address: contractAddress,
     abi: ERC20_ABI,
     functionName: "symbol",
   })
 
-  const { writeContract, data: hash, isPending, error } = useWriteContract()
+  const { write: writeContract, data: hash, isLoading: isPending, error } = appkit.contract.write()
 
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-  })
+  const { isLoading: isConfirming, isSuccess } = appkit.transaction.wait({ hash })
 
   const addAddressField = () => {
     if (addresses.length < 11) {
@@ -127,10 +125,10 @@ export default function SendTokensForm({ contractAddress }: SendTokensFormProps)
       const amountInWei = parseUnits(amount, decimals)
 
       writeContract({
-        address: contractAddress as `0x${string}`,
+        address: contractAddress,
         abi: ERC20_ABI,
         functionName: "sendToClassmates",
-        args: [validAddresses as `0x${string}`[], amountInWei],
+        args: [validAddresses, amountInWei],
       })
     } catch (err) {
       console.error("Transaction failed:", err)

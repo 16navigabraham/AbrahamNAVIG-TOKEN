@@ -1,7 +1,7 @@
 "use client"
 
-import { useReadContract } from "wagmi"
-import { formatUnits } from "viem"
+import { appkit } from "@/app/config/appkit"
+import { formatUnits } from "@reown/appkit"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -41,22 +41,22 @@ export default function WalletBalance({ contractAddress, walletAddress }: Wallet
     data: balance,
     isLoading: balanceLoading,
     refetch: refetchBalance,
-  } = useReadContract({
-    address: contractAddress as `0x${string}`,
+  } = appkit.contract.read({
+    address: contractAddress,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: walletAddress ? [walletAddress] : undefined,
-    query: { enabled: !!walletAddress },
+    enabled: !!walletAddress,
   })
 
-  const { data: decimals, isLoading: decimalsLoading } = useReadContract({
-    address: contractAddress as `0x${string}`,
+  const { data: decimals, isLoading: decimalsLoading } = appkit.contract.read({
+    address: contractAddress,
     abi: ERC20_ABI,
     functionName: "decimals",
   })
 
-  const { data: symbol, isLoading: symbolLoading } = useReadContract({
-    address: contractAddress as `0x${string}`,
+  const { data: symbol, isLoading: symbolLoading } = appkit.contract.read({
+    address: contractAddress,
     abi: ERC20_ABI,
     functionName: "symbol",
   })
